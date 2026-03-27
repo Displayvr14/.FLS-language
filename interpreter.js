@@ -53,12 +53,16 @@ function handleSet(line, localVars) {
     const name = left.replace('set','').trim();
     let value = right.trim();
 
+    if(value == 'true') value = "1";
+    if(value == 'false') value = "0";
+
     if ((value.startsWith('"') && value.endsWith('"')) ||
         (value.startsWith("'") && value.endsWith("'"))) {
         value = value.slice(1,-1);
     } else {
         value = evalExpr(value, localVars);
     }
+    
 
     localVars[name] = value;
     setVar(name, value);
