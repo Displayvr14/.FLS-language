@@ -52,7 +52,7 @@ if y
 console.text("Y is true!")
 end
 ```
-### Loops
+### Loops (bugged)
 ```fls
 while x > 0
     console.text(x)
