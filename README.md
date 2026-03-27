@@ -37,8 +37,19 @@ set result = (5 + 3) * 2
 ```
 ### Boolean Logic & If Statements
 ```fls
-if x > 10
-    console.text("x is greater than 10")
+set x = true
+set y = false
+
+if x && y
+console.text("Hello, World!")
+end
+
+if x
+console.text("X is true!")
+end
+
+if y
+console.text("Y is true!")
 end
 ```
 ### Loops
