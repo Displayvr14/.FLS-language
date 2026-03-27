@@ -39,8 +39,6 @@ set result = (5 + 3) * 2
 ```fls
 if x > 10
     console.text("x is greater than 10")
-else
-    console.text("x is 10 or less")
 ```
 ### Loops
 ```fls
