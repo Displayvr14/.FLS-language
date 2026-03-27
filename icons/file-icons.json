@@ -1,0 +1,20 @@
+{
+  "iconDefinitions": {
+    "fls-icon": {
+      "iconPath": "./FLS-Icon.png"
+    },
+    "_file": {
+      "iconPath": "" 
+    },
+    "_folder": {
+      "iconPath": ""
+    }
+  },
+  "fileExtensions": {
+    "fls": "fls-icon"
+  },
+  "folderNames": {},
+  "fileNames": {},
+  "light": {},
+  "dark": {}
+}

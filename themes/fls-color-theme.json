@@ -1,0 +1,11 @@
+{
+  "name": "FLS Custom Theme",
+  "colors": {},
+  "tokenColors": [
+    { "scope": "keyword.control", "settings": { "foreground": "#FF5555", "fontStyle": "bold" } },
+    { "scope": "constant.numeric", "settings": { "foreground": "#50FA7B" } },
+    { "scope": "string.quoted", "settings": { "foreground": "#F1FA8C" } },
+    { "scope": "comment.line", "settings": { "foreground": "#6272A4", "fontStyle": "italic" } },
+    { "scope": "variable.other", "settings": { "foreground": "#8BE9FD" } }
+  ]
+}

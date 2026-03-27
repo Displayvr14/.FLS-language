@@ -1,0 +1,42 @@
+{
+  "name": "fls-language",
+  "displayName": "FLS Language",
+  "description": "Syntax highlighting for FLS",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "categories": ["Programming Languages"],
+  "contributes": {
+    "languages": [
+      {
+        "id": "fls",
+        "aliases": ["FLS", "fls"],
+        "extensions": [".fls"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "fls",
+        "scopeName": "source.fls",
+        "path": "./syntaxes/fls.tmLanguage.json"
+      }
+    ],
+    "themes": [
+      {
+        "label": "FLS Custom Theme",
+        "uiTheme": "vs-dark",
+        "path": "./themes/fls-color-theme.json"
+      }
+    ],
+    "iconThemes": [
+      {
+        "id": "fls-file-icons",
+        "label": "FLS File Icons",
+        "path": "./icons/file-icons.json"
+      }
+]
+    
+  }
+}
