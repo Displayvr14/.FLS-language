@@ -7,6 +7,13 @@
     "vscode": "^1.70.0"
   },
   "categories": ["Programming Languages"],
+
+  "activationEvents": [
+    "onLanguage:fls"
+  ],
+
+  "main": "./extension.js",
+
   "contributes": {
     "languages": [
       {
@@ -36,7 +43,6 @@
         "label": "FLS File Icons",
         "path": "./icons/file-icons.json"
       }
-]
-    
+    ]
   }
 }

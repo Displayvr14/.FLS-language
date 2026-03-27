@@ -53,18 +53,22 @@ function handleSet(line, localVars) {
     const name = left.replace('set','').trim();
     let value = right.trim();
 
+    if(value == 'true') value = "1";
+    if(value == 'false') value = "0";
+
     if ((value.startsWith('"') && value.endsWith('"')) ||
         (value.startsWith("'") && value.endsWith("'"))) {
         value = value.slice(1,-1);
     } else {
         value = evalExpr(value, localVars);
     }
+    
 
     localVars[name] = value;
     setVar(name, value);
 }
 
-// ================= IF / ELSE =================
+// ================= IF =================
 function handleIf(lines, i, localVars) {
     const condition = lines[i].substring(3).trim();
     const result = evalExpr(condition, localVars);
@@ -73,10 +77,15 @@ function handleIf(lines, i, localVars) {
     let elseIndex = -1;
     let endIndex = -1;
 
+
     for (let j = blockStart; j < lines.length; j++) {
         const l = lines[j].trim();
         if (l === 'else') elseIndex = j;
         if (l === 'end') { endIndex = j; break; }
+    }
+    if(endIndex === -1) {
+        console.error("Syntax Error: 'if' without matching 'end'");
+        return lines.length;
     }
 
     if (result) interpret(lines, blockStart, elseIndex === -1 ? endIndex : elseIndex, {...localVars});
@@ -87,12 +96,16 @@ function handleIf(lines, i, localVars) {
 
 // ================= WHILE =================
 function handleWhile(lines, i, localVars) {
-    const condition = lines[i].substring(6).trim();
+    let condition = lines[i].substring(6).trim();
     let blockStart = i + 1;
     let endIndex = -1;
 
     for (let j = blockStart; j < lines.length; j++) {
         if (lines[j].trim() === 'end') { endIndex = j; break; }
+    }
+    if(endIndex === -1) {
+        console.error("Syntax Error: 'while' without matching 'end'");
+        return lines.length;
     }
 
     while (evalExpr(condition, localVars)) {
@@ -112,6 +125,10 @@ function handleFunctionDef(lines, i) {
     let endIndex = -1;
     for (let j = blockStart; j < lines.length; j++) {
         if (lines[j].trim() === 'end') { endIndex = j; break; }
+    }
+    if(endIndex === -1) {
+        console.error("Syntax Error: 'func' without matching 'end' at line " + (i+1));
+        return lines.length;
     }
 
     Functions[name] = { args, body: lines.slice(blockStart, endIndex) };
