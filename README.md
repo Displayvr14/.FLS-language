@@ -11,7 +11,7 @@
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/Displayvr14/fls-language.git
+git clone https://github.com/Displayvr14/.FLS-language.git
 cd fls-language
 ```
 2. Install Node.js (v18+ recommended) if you don’t have it: [Download Node.js](https://nodejs.org/)
