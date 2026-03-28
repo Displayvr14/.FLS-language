@@ -14,7 +14,7 @@ class Variable {
 }
 
 // ================= LOAD =================
-const fileName = process.argv[2];  
+const fileName = process.argv[2];
 if (!fileName) {
     console.error("Usage: node interpreter.js file.fls");
     process.exit(1);
@@ -30,14 +30,17 @@ function interpret(lines, start = 0, end = lines.length, localVars = {}) {
         let line = lines[i].trim();
         if (line === '' || line.startsWith('//')) continue;
 
-        if (line.startsWith('console')) handleConsole(line, localVars);
+        // Handle FS statements first
+        if (line.startsWith('readFile(') || line.startsWith('writeFile(')) {
+            handleFS(line, localVars);
+        }
+        else if (line.startsWith('console')) handleConsole(line, localVars);
         else if (line.startsWith('set ')) handleSet(line, localVars);
         else if (line.startsWith('if ')) i = handleIf(lines, i, localVars);
         else if (line.startsWith('while ')) i = handleWhile(lines, i, localVars);
         else if (line.startsWith('func ')) i = handleFunctionDef(lines, i);
         else if (line.startsWith('return ')) return evalExpr(line.substring(7), localVars);
         else if (line.match(/^[a-zA-Z_][a-zA-Z0-9_]*\(.+\)$/)) callFunction(line, localVars);
-        else if (line.startsWith('readFile(') || line.startsWith('writeFile(')) handleFS(line, localVars);
     }
 }
 
@@ -53,16 +56,14 @@ function handleSet(line, localVars) {
     const name = left.replace('set','').trim();
     let value = right.trim();
 
-    if(value == 'true') value = "1";
-    if(value == 'false') value = "0";
-
-    if ((value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"))) {
+    if(value === 'true') value = true;
+    else if(value === 'false') value = false;
+    else if ((value.startsWith('"') && value.endsWith('"')) ||
+             (value.startsWith("'") && value.endsWith("'"))) {
         value = value.slice(1,-1);
     } else {
         value = evalExpr(value, localVars);
     }
-    
 
     localVars[name] = value;
     setVar(name, value);
@@ -76,7 +77,6 @@ function handleIf(lines, i, localVars) {
     let blockStart = i + 1;
     let elseIndex = -1;
     let endIndex = -1;
-
 
     for (let j = blockStart; j < lines.length; j++) {
         const l = lines[j].trim();
@@ -96,7 +96,7 @@ function handleIf(lines, i, localVars) {
 
 // ================= WHILE =================
 function handleWhile(lines, i, localVars) {
-    let condition = lines[i].substring(6).trim();
+    const condition = lines[i].substring(6).trim();
     let blockStart = i + 1;
     let endIndex = -1;
 
@@ -109,7 +109,7 @@ function handleWhile(lines, i, localVars) {
     }
 
     while (evalExpr(condition, localVars)) {
-        interpret(lines, blockStart, endIndex, {...localVars});
+        interpret(lines, blockStart, endIndex, localVars);
     }
 
     return endIndex;
@@ -119,7 +119,7 @@ function handleWhile(lines, i, localVars) {
 function handleFunctionDef(lines, i) {
     const parts = lines[i].split(' ');
     const name = parts[1].split('(')[0];
-    const args = parts[1].match(/\((.*?)\)/)[1].split(',').map(s=>s.trim()).filter(s=>s);
+    const args = parseArgs(parts[1].match(/\((.*?)\)/)[1]);
 
     let blockStart = i + 1;
     let endIndex = -1;
@@ -136,18 +136,19 @@ function handleFunctionDef(lines, i) {
 }
 
 function callFunction(line, parentVars) {
-    const name = line.split('(')[0];
-    const argsStr = line.match(/\((.*?)\)/)[1];
+    const funcMatch = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\((.*)\)$/);
+    if (!funcMatch) return;
+    const name = funcMatch[1];
+    const argsStr = funcMatch[2];
     const func = Functions[name];
 
     if (!func) return console.error("Function not found:", name);
 
-    const argsVals = argsStr.split(',').map(a => evalExpr(a, parentVars));
+    const argsVals = parseArgs(argsStr).map(a => evalExpr(a, parentVars));
     const localVars = {...parentVars};
     func.args.forEach((argName,i)=>{ localVars[argName]=argsVals[i]; });
 
-    const ret = interpret(func.body, 0, func.body.length, localVars);
-    if (ret !== undefined) return ret;
+    return interpret(func.body, 0, func.body.length, localVars);
 }
 
 // ================= VARIABLES =================
@@ -166,68 +167,79 @@ function getVar(name, localVars={}) {
 // ================= PAREN CONTENT =================
 function getParenContent(line, localVars) {
     const inside = line.substring(line.indexOf('(')+1, line.lastIndexOf(')')).trim();
-    const parts = inside.match(/(["'])(.*?)\1|([^"\s]+)/g);
+    const parts = parseArgs(inside);
     let result = '';
-
     for (let part of parts) {
-        part = part.trim();
-        if (!part) continue;
         if ((part.startsWith('"') && part.endsWith('"')) ||
             (part.startsWith("'") && part.endsWith("'"))) {
             result += part.slice(1,-1);
-        } else if (part.match(/^[\d.]+$/)) result += part;
-        else result += evaluateAccess(part, localVars);
+        } else if (!isNaN(part)) result += part;
+        else result += getVar(part, localVars);
     }
-
     return result;
 }
 
+// ================= ARG PARSING =================
+function parseArgs(argStr) {
+    let args = [];
+    let current = '';
+    let inQuote = false;
+    let quoteChar = '';
+    for (let i=0;i<argStr.length;i++) {
+        const c = argStr[i];
+        if ((c === '"' || c === "'")) {
+            if (inQuote && c === quoteChar) { inQuote=false; current+=c; }
+            else if (!inQuote) { inQuote=true; quoteChar=c; current+=c; }
+            else current+=c;
+        } else if (c === ',' && !inQuote) {
+            args.push(current.trim()); current=''; 
+        } else current+=c;
+    }
+    if(current.trim()!=='') args.push(current.trim());
+    return args;
+}
+
 // ================= ARRAY / OBJECT ACCESS =================
-function evaluateAccess(expr, localVars={}) {
-    // Replace variables first
-    Object.keys(localVars).forEach(k => {
+function evalExpr(expr, localVars={}) {
+    expr = expr.trim();
+    if(expr==='true') return true;
+    if(expr==='false') return false;
+    if(!isNaN(expr)) return Number(expr);
+
+    // Handle function calls inside expressions
+    const funcMatch = expr.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\((.*)\)$/);
+    if (funcMatch) {
+        const name = funcMatch[1];
+        const argsStr = funcMatch[2];
+        const func = Functions[name];
+        if(!func) throw new Error("Function not found: "+name);
+        const localScope = {};
+        parseArgs(argsStr).forEach((a,i)=>{ localScope[func.args[i]]=evalExpr(a, localVars); });
+        return interpret(func.body, 0, func.body.length, localScope);
+    }
+
+    // Replace variables
+    Object.keys(localVars).forEach(k=>{
         expr = expr.replace(new RegExp(`\\b${k}\\b`, 'g'), JSON.stringify(localVars[k]));
     });
-
-    Variables.forEach(v => {
+    Variables.forEach(v=>{
         expr = expr.replace(new RegExp(`\\b${v.name}\\b`, 'g'), JSON.stringify(v.value));
     });
 
-    try {
-        // Check if the expression is a function call
-        const funcCallMatch = expr.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\((.*)\)$/);
-        if (funcCallMatch) {
-            const fname = funcCallMatch[1];
-            const argsStr = funcCallMatch[2];
-            const func = Functions[fname];
-            if (!func) throw new Error("Function not found: " + fname);
-
-            const argsVals = argsStr.split(',').map(a => evalExpr(a.trim(), localVars));
-            const localScope = {...localVars};
-            func.args.forEach((argName, i) => { localScope[argName] = argsVals[i]; });
-            return interpret(func.body, 0, func.body.length, localScope);
-        }
-
-        // Otherwise, evaluate normally (numbers, arrays, objects, math)
-        return JSON.parse(JSON.stringify(eval(expr)));
-    } catch(e) {
-        console.error("Error evaluating:", expr);
-        return 0;
-    }
-}
-
-// ================= EXPRESSION ENGINE =================
-function evalExpr(expr, localVars={}) {
-    return evaluateAccess(expr, localVars);
+    // Evaluate simple JS expression
+    try { return eval(expr); } 
+    catch(e) { return 0; }
 }
 
 // ================= FILE SYSTEM =================
 function handleFS(line, localVars) {
-    if (line.startsWith('readFile(')) {
+    if(line.startsWith('readFile(')) {
         const file = getParenContent(line, localVars);
         localVars['fileContent'] = fs.readFileSync(file, 'utf-8');
-    } else if (line.startsWith('writeFile(')) {
-        const [file, content] = line.match(/\((.*?),(.*?)\)/).slice(1,3).map(s=>s.trim());
-        fs.writeFileSync(file.replace(/['"]/g,''), getVar(content, localVars));
+    } else if(line.startsWith('writeFile(')) {
+        const args = parseArgs(line.substring(line.indexOf('(')+1, line.lastIndexOf(')')));
+        const file = args[0].replace(/['"]/g,'');
+        const content = args[1];
+        fs.writeFileSync(file, getVar(content, localVars).toString());
     }
 }

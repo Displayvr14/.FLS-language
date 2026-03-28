@@ -13,7 +13,9 @@ function activate(context) {
     "return",
     "end",
     "then",
-    "console.text"
+    "console.text",
+    "readFile",
+    "writeFile"
 ];
 
     // --- UPDATE DIAGNOSTICS (RED SQUIGGLES) ---
@@ -77,6 +79,8 @@ function activate(context) {
             add('func', vscode.CompletionItemKind.Keyword, 'Function');
             add('return', vscode.CompletionItemKind.Keyword, 'Return value');
             add('console.text', vscode.CompletionItemKind.Function, 'Print to console');
+            add('readFile', vscode.CompletionItemKind.Function, 'Read from file');
+            add('writeFile', vscode.CompletionItemKind.Function, 'Write to file');
 
             return items;
         }
@@ -101,7 +105,9 @@ function activate(context) {
                 return: "Returns a value from a function",
                 console: "Console object",
                 text: "Prints text to output",
-                end: "Ends a block (if, while, func)"
+                end: "Ends a block (if, while, func)",
+                readFile: "Reads content from a file\n\nExample:\nreadFile('file.txt')",
+                writeFile: "Writes content to a file\n\nExample:\nwriteFile('file.txt', 'Hello World')"
             };
 
             if (docs[word]) {
